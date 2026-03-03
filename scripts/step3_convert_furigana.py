@@ -101,7 +101,17 @@ def remove_non_katakana(text: str) -> str:
 # 除外パターン（この文字列を含む行は空欄に変換）
 # ═════════════════════════════════════════════
 EXCLUDED_PATTERNS = [
-    '依頼人名：',   # 「（依頼人名：カ）サンシスコン」 「（依頼人名：イワタ゛ユンイチ」 など共通パターン
+    # ── 自社出金・振替パターン ─────────────────────────────────────
+    '依頼人名：',           # 自社出金行（依頼人名：カ）サンシスコン など）
+
+    # ── 法人名・サービス名（個人顧客ではないため照合対象外）──────────────
+    'ＣＳＳ（ＭＦＲＬ',   # CSS（MFRL賃料）  例：ＣＳＳ（ＭＦＲＬチンリヨウ
+    'ロボツトペイメント',   # ロボットペイメント（決済代行会社）
+    'コクリツケンキユウカイハツ',  # 国立研究開発法人医薬基盤健康
+    'ラクテンカ−ト゛',     # 楽天カードサービス（−は長音符の変形、゛は独立半濁点）
+    'ニホンセイメイホケン', # 日本生命保険
+    # ── 追加はここに記載 ─────────────────────────────────────────
+    # '(パターン)',         # （説明）
 ]
 def apply_yoon(text: str) -> str:
     """拗音変換：全角スペースで割った単語ごとに適用する。
@@ -166,16 +176,17 @@ def process_csv(input_path: str, output_path: str):
     with open(output_path, 'w', encoding='utf-8-sig', newline='') as f:
         writer = csv.writer(f)
         # ヘッダー：変換前・変換後を並べて確認しやすくする
-        writer.writerow(['取引日', '入出金(円)', '振込名義（変換前）', '振込名義（変換後フリガナ）'])
+        writer.writerow(['取引日', '入出金(円)', '累計(円)', '振込名義（変換前）', '振込名義（変換後フリガナ）'])
 
         for row in rows:
-            if len(row) < 3:
+            if len(row) < 4:
                 continue
             date     = row[0].strip()
             amount   = row[1].strip()
-            name     = row[2].strip()
+            balance  = row[2].strip()
+            name     = row[3].strip()
             furigana = convert_furigana(name)
-            writer.writerow([date, amount, name, furigana])
+            writer.writerow([date, amount, balance, name, furigana])
 
     print(f'  行数: {len(rows)} 件')
 
@@ -191,15 +202,15 @@ def main():
 
     csv_files = glob.glob(os.path.join(input_dir, '*.csv'))
     if not csv_files:
-        print('⚠️  csv_import/ にCSVファイルが見つかりません')
+        print('[WARNING] csv_import/ にCSVファイルが見つかりません')
         return
 
     for input_file in csv_files:
         filename    = os.path.basename(input_file)
         output_file = os.path.join(output_dir, f'step3_{filename}')
-        print(f'▶ 変換中: {filename}')
+        print(f'[変換中] {filename}')
         process_csv(input_file, output_file)
-        print(f'✅ 出力: csv_export/step3_{filename}')
+        print(f'[完了]   csv_export/step3_{filename}')
 
     print('\n完了')
 
