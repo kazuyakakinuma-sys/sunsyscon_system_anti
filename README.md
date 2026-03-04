@@ -28,7 +28,8 @@ sunsyscon/
 │   ├── spec.md              # システム仕様書（随時更新）
 │   └── dev_log.md           # 開発ログ・意思決定の記録
 └── scripts/
-    └── step3_convert_furigana.py  # STEP3: 振込名義フリガナ変換スクリプト
+    ├── phase01_process_bank_csv.py  # Phase 01: 楽天銀行CSVの正規化・フリガナ変換
+    └── rules_furigana.py            # Phase 01 で使用する変換各種ルール・辞書
 ```
 
 > ⚠️ `csv_import/` `csv_export/` フォルダはローカルに手動作成してください（個人情報保護のためGit管理外）
@@ -52,19 +53,18 @@ mkdir csv_export
 ### 3. 動作確認（Python 3 が必要）
 ```bash
 # 楽天銀行CSVを csv_import/ に配置してから実行
-python3 scripts/step3_convert_furigana.py
-# → csv_export/ に変換済みCSVが生成される
+python scripts/phase01_process_bank_csv.py
+# → csv_export/ に変換済みのCSV（phase01_...csv）が生成される
 ```
 
 ---
 
 ## 処理フロー（現在の実装状況）
 
-| ステップ | 内容 | 状態 |
+| フェーズ/ステップ | 内容 | 状態 |
 |---------|------|------|
-| STEP 1 | 楽天銀行CSVを読み込む | ✅ スクリプト実装済み |
+| **Phase 01** | **楽天銀行CSVの取り込みと正規化** | ✅ 実装済み (`phase01...`) |
 | STEP 2 | kintone各アプリCSVを読み込む | 🔲 未実装 |
-| STEP 3 | 振込名義をフリガナに正規化・変換 | ✅ スクリプト実装済み |
 | STEP 4〜 | 照合・算出処理 | 🔲 未実装（仕様整理中） |
 | 最終STEP | kintoneインポート用CSV生成 | 🔲 未実装 |
 
