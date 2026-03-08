@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>sunsyscon - 入金照合システム</title>
+  <meta name="description" content="楽天銀行の入金履歴CSVとkintone顧客データを照合し、インポート用CSVを自動生成するシステム">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- ヘッダー -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">sunsyscon</span>
+      </div>
+      <div class="header-subtitle">入金照合システム</div>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- ステップインジケーター -->
+    <div class="steps-indicator">
+      <div class="step-item active" data-step="1">
+        <div class="step-number">1</div>
+        <div class="step-label">銀行CSV</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-item" data-step="2">
+        <div class="step-number">2</div>
+        <div class="step-label">顧客CSV</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-item" data-step="3">
+        <div class="step-number">3</div>
+        <div class="step-label">照合実行</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-item" data-step="4">
+        <div class="step-number">4</div>
+        <div class="step-label">結果確認</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-item" data-step="5">
+        <div class="step-number">5</div>
+        <div class="step-label">CSV出力</div>
+      </div>
+    </div>
+
+    <!-- パネルコンテナ -->
+    <div class="panels">
+
+      <!-- STEP 1: 楽天銀行CSV -->
+      <section class="panel" id="panel-step1">
+        <div class="panel-header">
+          <h2>STEP 1：楽天銀行CSV アップロード</h2>
+          <p class="panel-desc">楽天銀行からダウンロードした入出金明細CSVファイルをアップロードしてください。</p>
+        </div>
+        <div class="upload-area" id="drop-bank">
+          <div class="upload-icon">📄</div>
+          <p>ファイルをドラッグ＆ドロップ<br>または</p>
+          <label class="btn btn-primary">
+            ファイルを選択
+            <input type="file" accept=".csv" id="file-bank" hidden>
+          </label>
+        </div>
+        <div class="upload-result" id="result-bank" style="display:none"></div>
+      </section>
+
+      <!-- STEP 2: 顧客データCSV -->
+      <section class="panel" id="panel-step2">
+        <div class="panel-header">
+          <h2>STEP 2：kintone 顧客データCSV アップロード</h2>
+          <p class="panel-desc">kintoneの「顧客データ」アプリからエクスポートしたCSVをアップロードしてください。</p>
+        </div>
+        <div class="upload-area" id="drop-customer">
+          <div class="upload-icon">👥</div>
+          <p>ファイルをドラッグ＆ドロップ<br>または</p>
+          <label class="btn btn-primary">
+            ファイルを選択
+            <input type="file" accept=".csv" id="file-customer" hidden>
+          </label>
+        </div>
+        <div class="upload-result" id="result-customer" style="display:none"></div>
+      </section>
+
+      <!-- STEP 3: 照合実行 -->
+      <section class="panel" id="panel-step3">
+        <div class="panel-header">
+          <h2>STEP 3：照合・計算実行</h2>
+          <p class="panel-desc">アップロードしたCSVのデータを照合・計算します。</p>
+        </div>
+        <div class="status-cards" id="status-cards">
+          <div class="status-card">
+            <div class="status-value" id="stat-bank">-</div>
+            <div class="status-label">銀行入金件数</div>
+          </div>
+          <div class="status-card">
+            <div class="status-value" id="stat-customer">-</div>
+            <div class="status-label">顧客データ件数</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-large" id="btn-match" disabled>
+          照合を実行する
+        </button>
+        <div class="match-result" id="result-match" style="display:none"></div>
+      </section>
+
+      <!-- STEP 4: 結果確認 -->
+      <section class="panel" id="panel-step4" style="display:none">
+        <div class="panel-header">
+          <h2>STEP 4：照合結果</h2>
+        </div>
+
+        <!-- タブ切り替え -->
+        <div class="tab-nav">
+          <button class="tab-btn active" data-tab="tab-matched">
+            ✅ 入金済み <span class="badge" id="badge-matched">0</span>
+          </button>
+          <button class="tab-btn" data-tab="tab-review">
+            ⚠️ 要確認 <span class="badge badge-warn" id="badge-review">0</span>
+          </button>
+        </div>
+
+        <!-- 入金済みタブ -->
+        <div class="tab-content active" id="tab-matched">
+          <div class="table-container">
+            <table id="table-matched">
+              <thead>
+                <tr>
+                  <th>レコード番号</th>
+                  <th>顧客ID</th>
+                  <th>氏名</th>
+                  <th>フリガナ</th>
+                  <th>契約月数</th>
+                  <th>入金額</th>
+                  <th>請求額</th>
+                  <th>過不足</th>
+                  <th>手数料備考</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 要確認タブ -->
+        <div class="tab-content" id="tab-review">
+          <div id="review-list"></div>
+        </div>
+      </section>
+
+      <!-- STEP 5: CSV出力 -->
+      <section class="panel" id="panel-step5" style="display:none">
+        <div class="panel-header">
+          <h2>STEP 5：kintone インポート用CSV ダウンロード</h2>
+          <p class="panel-desc">「入金済み」に確定した顧客のデータをCSVとしてダウンロードし、kintoneにインポートしてください。</p>
+        </div>
+        <div class="download-area">
+          <div class="download-info">
+            <span class="download-icon">📥</span>
+            <span>ダウンロード対象: <strong id="download-count">0</strong> 件</span>
+          </div>
+          <button class="btn btn-success btn-large" id="btn-download">
+            CSVをダウンロード
+          </button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>sunsyscon — 入金照合システム</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

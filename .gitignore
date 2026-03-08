@@ -1,6 +1,12 @@
 # macOS
 .DS_Store
 
+# Python キャッシュ
+__pycache__/
+
 # 個人情報・機密データを含むCSVフォルダはGit管理外
 csv_import/
 csv_export/
+
+# 社内資料（Excelマスター等）はGit管理外
+documents/
